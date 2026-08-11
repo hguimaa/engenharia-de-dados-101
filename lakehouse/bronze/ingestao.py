@@ -48,51 +48,39 @@ DT_INGESTAO = datetime.now(timezone.utc).isoformat()
 
 
 def ler_vendas_csv() -> list[dict]:
-    """
-    Lê lakehouse/landing/vendas.csv e devolve uma lista de dicionários, um por linha,
-    EXATAMENTE como está no arquivo (não converta tipos, não filtre nada).
+    caminho = LANDING / "vendas.csv"
 
-    Dica: use csv.DictReader.
-    """
-    # TODO: implemente a leitura do arquivo lakehouse/landing/vendas.csv
-    raise NotImplementedError("Implemente ler_vendas_csv()")
+    with open(caminho, newline="", encoding="utf-8") as arquivo:
+        leitor = csv.DictReader(arquivo)
+        return list(leitor)
 
 
 def ler_clientes_json() -> list[dict]:
-    """
-    Lê lakehouse/landing/clientes.json e devolve a lista de dicionários já presente
-    no arquivo. Alguns registros podem ter campos faltando (ex.: sem
-    "data_cadastro") ou campos extras (ex.: "telefone") -- não se preocupe
-    com isso agora, apenas carregue o JSON como ele é.
+    caminho = LANDING / "clientes.json"
 
-    Dica: use json.load(). Repare que nem todo registro tem as mesmas
-    chaves -- isso é esperado na bronze.
-    """
-    # TODO: implemente a leitura do arquivo lakehouse/landing/clientes.json
-    raise NotImplementedError("Implemente ler_clientes_json()")
+    with open(caminho, encoding="utf-8") as arquivo:
+        return json.load(arquivo)
 
 
 def ler_produtos_txt() -> list[dict]:
-    """
-    Lê lakehouse/landing/produtos.txt, um arquivo texto delimitado por "|", e
-    devolve uma lista de dicionários com as chaves:
-        id_produto, nome, categoria, preco, ativo
+    caminho = LANDING / "produtos.txt"
 
-    Regras de leitura (isso IS parte da ingestão bronze, pois é sobre
-    "como ler o formato", não sobre "corrigir o conteúdo"):
-      - Linhas que começam com "#" são comentários -> ignore.
-      - Linhas em branco -> ignore.
-      - A primeira linha "de verdade" (não comentário, não em branco) é o
-        cabeçalho: "id_produto|nome|categoria|preco|ativo" -> use-a para
-        nomear as colunas, não a inclua como dado.
-      - Todas as demais linhas são dados: separe por "|" e monte o dicionário.
+    registros = []
 
-    Dica: abra o arquivo, itere linha a linha com .readlines() ou iterando
-    o próprio arquivo, use .strip() para remover a quebra de linha e
-    .split("|") para separar os campos.
-    """
-    # TODO: implemente a leitura do arquivo lakehouse/landing/produtos.txt
-    raise NotImplementedError("Implemente ler_produtos_txt()")
+    with open(caminho, encoding="utf-8") as arquivo:
+        linhas = [
+            linha.strip()
+            for linha in arquivo
+            if linha.strip() and not linha.strip().startswith("#")
+        ]
+
+    cabecalho = linhas[0].split("|")
+
+    for linha in linhas[1:]:
+        valores = linha.split("|")
+        registros.append(dict(zip(cabecalho, valores)))
+
+    return registros
 
 
 def adicionar_metadados(registros: list[dict], nome_arquivo: str) -> list[dict]:
