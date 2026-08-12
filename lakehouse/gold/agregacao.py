@@ -90,7 +90,7 @@ def calcular_resumo_por_categoria(vendas: list[dict], produtos: list[dict]) -> l
         resultado.append({
             "categoria": categoria,
             "quantidade_vendida": dados["quantidade"],
-            "valor_total": dados["valor_total"],
+            "valor_total": round(dados["valor_total"], 2)
         })
 
     return resultado
@@ -114,7 +114,7 @@ def calcular_vendas_por_mes(vendas: list[dict]) -> list[dict]:
         resultado.append({
             "mes": mes,
             "quantidade_vendas": dados["quantidade_vendas"],
-            "valor_total": dados["valor_total"],
+            "valor_total": round(dados["valor_total"], 2)
         })
 
     return resultado
@@ -151,7 +151,7 @@ def calcular_top_clientes(
         resultado.append({
             "id_cliente": id_cliente,
             "nome": cliente["nome"],
-            "valor_total": valor_total
+            "valor_total": round(valor_total, 2)
         })
 
     return resultado
@@ -172,10 +172,9 @@ def calcular_resumo_geral(vendas: list[dict]) -> list[dict]:
 
     return [{
         "total_vendas": total_vendas,
-        "valor_total_geral": valor_total_geral,
+        "valor_total_geral": round(valor_total_geral, 2),
         "ticket_medio": ticket_medio,
     }]
-
 
 def main() -> None:
     vendas = ler_csv(SILVER_SAIDA / "vendas_silver.csv")
