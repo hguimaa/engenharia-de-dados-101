@@ -56,6 +56,7 @@ para o filtro de integridade referencial.
 
 import csv
 from pathlib import Path
+from datetime import datetime
 
 LAKEHOUSE = Path(__file__).parent.parent
 BRONZE_SAIDA = LAKEHOUSE / "bronze" / "saida"
@@ -80,30 +81,128 @@ def salvar_csv(registros: list[dict], caminho_saida: Path, colunas: list[str]) -
 
 
 def limpar_clientes(bronze: list[dict]) -> list[dict]:
-    """
-    Aplica as regras de limpeza de clientes descritas no topo do arquivo.
-    Retorna a lista final (sem duplicatas, sem e-mails inválidos).
-    """
-    # TODO: implemente a limpeza de clientes
-    raise NotImplementedError("Implemente limpar_clientes()")
+    clientes = {}
 
+    for registro in bronze:
+        id_cliente = int(registro["id_cliente"])
+
+        email = registro["email"].strip().lower()
+
+        if "@" not in email:
+            continue
+
+        estado = registro["estado"].strip().upper()
+
+        clientes[id_cliente] = {
+            "id_cliente": id_cliente,
+            "nome": registro["nome"],
+            "email": email,
+            "cidade": registro["cidade"],
+            "estado": estado,
+            "data_cadastro": registro.get("data_cadastro", ""),
+        }
+
+    return list(clientes.values())
+
+
+CATEGORIAS_NORMALIZADAS = {
+    categoria.lower(): categoria
+    for categoria in CATEGORIAS_VALIDAS
+}
 
 def limpar_produtos(bronze: list[dict]) -> list[dict]:
-    """
-    Aplica as regras de limpeza de produtos descritas no topo do arquivo.
-    """
-    # TODO: implemente a limpeza de produtos
-    raise NotImplementedError("Implemente limpar_produtos()")
+    produtos = []
+    ids_vistos = set()
+
+    for registro in bronze:
+        id_produto = int(registro["id_produto"])
+
+        if id_produto in ids_vistos:
+            continue
+
+        ids_vistos.add(id_produto)
+
+        categoria = registro["categoria"].strip().lower()
+        categoria = CATEGORIAS_NORMALIZADAS[categoria]
+
+        ativo = registro["ativo"].strip().lower()
+
+        if ativo in ("sim", "1"):
+            ativo = 1
+        else:
+            ativo = 0
+
+        produtos.append({
+            "id_produto": id_produto,
+            "nome": registro["nome"],
+            "categoria": categoria,
+            "preco": float(registro["preco"].replace(",", ".")),
+            "ativo": ativo,
+        })
+
+    return produtos
 
 
-def limpar_vendas(bronze: list[dict], ids_clientes_validos: set[int], ids_produtos_validos: set[int]) -> list[dict]:
-    """
-    Aplica as regras de limpeza de vendas descritas no topo do arquivo,
-    incluindo o filtro de integridade referencial contra clientes/produtos
-    já limpos.
-    """
-    # TODO: implemente a limpeza de vendas
-    raise NotImplementedError("Implemente limpar_vendas()")
+def limpar_vendas(
+    bronze: list[dict],
+    ids_clientes_validos: set[int],
+    ids_produtos_validos: set[int]
+) -> list[dict]:
+
+    vendas = []
+    ids_vendas_vistos = set()
+
+    for registro in bronze:
+        id_venda = int(registro["id_venda"])
+
+        if id_venda in ids_vendas_vistos:
+            continue
+
+        ids_vendas_vistos.add(id_venda)
+
+        id_cliente = int(registro["id_cliente"])
+        id_produto = int(registro["id_produto"])
+
+        if id_cliente not in ids_clientes_validos:
+            continue
+
+        if id_produto not in ids_produtos_validos:
+            continue
+
+        quantidade = registro["quantidade"].strip()
+
+        if not quantidade:
+            continue
+
+        quantidade = int(quantidade)
+
+        if quantidade <= 0:
+            continue
+
+        valor_total = registro["valor_total"].strip()
+
+        if not valor_total:
+            continue
+
+        valor_total = float(valor_total.replace(",", "."))
+
+        data = registro["data_venda"].strip()
+
+        try:
+            data_formatada = datetime.strptime(data, "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            data_formatada = datetime.strptime(data, "%d/%m/%Y").strftime("%Y-%m-%d")
+
+        vendas.append({
+            "id_venda": id_venda,
+            "id_cliente": id_cliente,
+            "id_produto": id_produto,
+            "quantidade": quantidade,
+            "data_venda": data_formatada,
+            "valor_total": valor_total,
+        })
+
+    return vendas
 
 
 def main() -> None:
