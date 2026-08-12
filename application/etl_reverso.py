@@ -61,35 +61,40 @@ def ler_csv_gold(nome_tabela: str) -> list[dict]:
         return list(csv.DictReader(arquivo))
 
 
-def criar_tabela(conexao: sqlite3.Connection, nome_tabela: str, colunas: list[str]) -> None:
-    """
-    Cria (ou recria) a tabela `nome_tabela` no banco, com uma coluna para
-    cada nome em `colunas` -- sem se preocupar com tipos: o SQLite é
-    dinamicamente tipado, então uma coluna sem tipo declarado aceita
-    qualquer valor.
+def criar_tabela(
+    conexao: sqlite3.Connection,
+    nome_tabela: str,
+    colunas: list[str]
+) -> None:
 
-    Dica: DROP TABLE IF EXISTS antes de criar, para o script poder ser
-    rodado várias vezes sem dar erro de "tabela já existe". Os nomes das
-    colunas podem ser inseridos direto na string do SQL (não dá pra usar
-    parâmetro `?` para nomes de coluna, só para valores).
-    """
-    # TODO: implemente a criação da tabela
-    raise NotImplementedError("Implemente criar_tabela()")
+    conexao.execute(f"DROP TABLE IF EXISTS {nome_tabela}")
+
+    definicao_colunas = ", ".join(colunas)
+
+    conexao.execute(
+        f"CREATE TABLE {nome_tabela} ({definicao_colunas})"
+    )
 
 
-def inserir_linhas(conexao: sqlite3.Connection, nome_tabela: str, colunas: list[str], linhas: list[dict]) -> None:
-    """
-    Insere cada dicionário de `linhas` na tabela `nome_tabela`, um INSERT
-    por linha, sem converter ou alterar nenhum valor.
+def inserir_linhas(
+    conexao: sqlite3.Connection,
+    nome_tabela: str,
+    colunas: list[str],
+    linhas: list[dict]
+) -> None:
 
-    Dica: monte a string SQL com "?" como placeholder para cada coluna
-    (ex.: "INSERT INTO tabela (a, b) VALUES (?, ?)") e passe os valores
-    via `conexao.execute(sql, valores)` -- nunca monte a string com os
-    VALORES direto (isso evita SQL injection, mesmo aqui sendo dados
-    controlados).
-    """
-    # TODO: implemente a inserção das linhas
-    raise NotImplementedError("Implemente inserir_linhas()")
+    placeholders = ", ".join("?" for _ in colunas)
+    nomes_colunas = ", ".join(colunas)
+
+    sql = (
+        f"INSERT INTO {nome_tabela} "
+        f"({nomes_colunas}) "
+        f"VALUES ({placeholders})"
+    )
+
+    for linha in linhas:
+        valores = [linha.get(coluna, "") for coluna in colunas]
+        conexao.execute(sql, valores)
 
 
 def main() -> None:
